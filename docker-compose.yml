@@ -1,0 +1,37 @@
+version: '3.5'
+
+## Note this can work with alpine if you want,
+## but sometimes you want to exec into a pod
+## and have utilities you otherwise wouldn't.
+## So, have some bloat.
+x-common: &common
+  image: ubuntu:20.04
+  working_dir: /overload
+  volumes:
+    - type: bind
+      source: ./
+      target: /overload
+    - type: bind
+      source: ${HOME}/.config/unity3d/Revival/Overload
+      target: /root/.config/unity3d/Revival/Overload
+
+services:
+
+  ## Overload isn't great at staying _available_.
+  ## Sometimes servers get "stuck at teleporting", or can't have lobbies
+  ## created, or other such silliness.
+  ## I do a dirty and run a sad supervisor style control loop for this.
+  supervisor:
+    <<: *common
+    entrypoint: ./olsupervisor.sh
+    depends_on: [ overload ]
+    env_file: env
+
+  ## Game server itself
+  overload:
+    <<: *common
+    restart: always
+    entrypoint: ./olmodserverinet.sh
+    command: '-port 8000'
+    ports: [ '8000:8000/udp', '8001:8001/udp' ]
+
